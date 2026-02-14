@@ -1,0 +1,42 @@
+[project]
+name = "wallet-attached-storage-client"
+version = "0.1.0"
+description = "Client library for the Wallet Attached Storage specification"
+license = { file = "LICENSE.md" }
+readme = "README.md"
+authors = [
+    { name = "Grey Flannel Consulting", email = "contact@greyflannelconsulting.com" }
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "bandit>=1.8.6",
+    "flake8>=7.3.0",
+    "keyring>=25.6.0",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.0",
+    "safety>=3.2.9",
+]
+
+[tool.hatch.build]
+only-packages = true
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "N", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
