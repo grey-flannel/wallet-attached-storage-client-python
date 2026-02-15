@@ -97,8 +97,8 @@ class TestCreateAuthorizationHeader:
         assert header.startswith("Signature ")
         assert f'keyId="{signer.id}"' in header
         assert 'headers="(created) (expires) (key-id) (request-target)"' in header
-        assert "created=1700000000," in header
-        assert "expires=1700000030" in header
+        assert 'created="1700000000",' in header
+        assert 'expires="1700000030"' in header
         assert 'signature="' in header
 
     def test_signature_verifies(self) -> None:
@@ -110,11 +110,13 @@ class TestCreateAuthorizationHeader:
             created=1700000000.0,
             expires=1700000030.0,
         )
-        # Extract signature from header
+        # Extract signature from header (base64url-encoded, no padding)
         sig_start = header.index('signature="') + len('signature="')
         sig_end = header.index('"', sig_start)
-        sig_b64 = header[sig_start:sig_end]
-        sig_bytes = base64.b64decode(sig_b64)
+        sig_b64url = header[sig_start:sig_end]
+        # Restore padding for decoding
+        sig_b64url_padded = sig_b64url + "=" * (-len(sig_b64url) % 4)
+        sig_bytes = base64.urlsafe_b64decode(sig_b64url_padded)
 
         # Reconstruct what was signed
         sig_string = build_signature_string(
@@ -133,12 +135,13 @@ class TestCreateAuthorizationHeader:
             method="GET",
             url="/",
         )
-        # Extract created and expires from header
-        created_idx = header.index("created=") + len("created=")
-        created_end = header.index(",", created_idx)
+        # Extract created and expires from header (values are quoted)
+        created_idx = header.index('created="') + len('created="')
+        created_end = header.index('"', created_idx)
         created = int(header[created_idx:created_end])
 
-        expires_idx = header.rindex("expires=") + len("expires=")
-        expires = int(header[expires_idx:])
+        expires_idx = header.rindex('expires="') + len('expires="')
+        expires_end = header.index('"', expires_idx)
+        expires = int(header[expires_idx:expires_end])
 
         assert expires - created == 30

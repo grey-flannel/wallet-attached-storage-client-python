@@ -35,6 +35,7 @@ only-packages = true
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
+markers = ["live: tests requiring a WAS server on localhost:8080"]
 
 [tool.ruff]
 line-length = 120

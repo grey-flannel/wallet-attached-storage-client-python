@@ -9,9 +9,20 @@ class TestEd25519Signer:
         signer = Ed25519Signer()
         assert isinstance(signer, Signer)
 
-    def test_generates_did_key(self) -> None:
+    def test_generates_did_key_verification_method_id(self) -> None:
         signer = Ed25519Signer()
-        assert signer.id.startswith("did:key:z6Mk")
+        # id is the verification method ID: did:key:z6Mk...#z6Mk...
+        assert "#" in signer.id
+        did, fragment = signer.id.split("#")
+        assert did.startswith("did:key:z6Mk")
+        assert fragment.startswith("z6Mk")
+        assert did == f"did:key:{fragment}"
+
+    def test_controller(self) -> None:
+        signer = Ed25519Signer()
+        assert signer.controller.startswith("did:key:z6Mk")
+        assert "#" not in signer.controller
+        assert signer.id.startswith(signer.controller)
 
     def test_deterministic_from_key(self) -> None:
         key = Ed25519PrivateKey.generate()

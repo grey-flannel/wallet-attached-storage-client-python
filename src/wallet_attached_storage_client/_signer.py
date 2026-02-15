@@ -17,11 +17,19 @@ class Ed25519Signer:
         self._private_key = private_key or Ed25519PrivateKey.generate()
         pub_bytes = self._private_key.public_key().public_bytes_raw()
         multikey = self._MULTICODEC_ED25519_PUB + pub_bytes
-        self._id = f"did:key:z{base58.b58encode(multikey).decode()}"
+        fingerprint = f"z{base58.b58encode(multikey).decode()}"
+        self._controller = f"did:key:{fingerprint}"
+        self._id = f"{self._controller}#{fingerprint}"
 
     @property
     def id(self) -> str:
+        """Verification method ID (``did:key:z6Mk...#z6Mk...``)."""
         return self._id
+
+    @property
+    def controller(self) -> str:
+        """Controller DID (``did:key:z6Mk...``)."""
+        return self._controller
 
     def sign(self, data: bytes) -> bytes:
         return self._private_key.sign(data)

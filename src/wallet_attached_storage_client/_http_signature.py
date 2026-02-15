@@ -67,7 +67,7 @@ def create_authorization_header(
     Returns a string like::
 
         Signature keyId="did:key:...",headers="(created) (expires) (key-id) (request-target)",
-        signature="<base64>",created=N,expires=N
+        signature="<base64>",created="N",expires="N"
 
     The *signer* must implement the ``Signer`` protocol (``id`` property, ``sign(data)`` method).
     """
@@ -88,13 +88,13 @@ def create_authorization_header(
     )
 
     sig_bytes = signer.sign(sig_string.encode("utf-8"))
-    sig_b64 = base64.b64encode(sig_bytes).decode("ascii")
+    sig_b64 = base64.urlsafe_b64encode(sig_bytes).decode("ascii").rstrip("=")
 
     headers_param = " ".join(headers)
     return (
         f'Signature keyId="{key_id}",'
         f'headers="{headers_param}",'
         f'signature="{sig_b64}",'
-        f"created={created_ts},"
-        f"expires={expires_ts}"
+        f'created="{created_ts}",'
+        f'expires="{expires_ts}"'
     )
