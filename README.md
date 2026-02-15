@@ -11,38 +11,12 @@ pip install wallet-attached-storage-client
 ## Usage
 
 ```python
-import base58
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from wallet_attached_storage_client import StorageClient
+import json
+from wallet_attached_storage_client import Ed25519Signer, StorageClient
 
-
-# --- Build a Signer from a `cryptography` Ed25519 key pair ---
-
-class Ed25519Signer:
-    """Signer backed by the `cryptography` library."""
-
-    # Multicodec prefix for Ed25519 public keys (0xed 0x01)
-    _MULTICODEC_ED25519_PUB = b"\xed\x01"
-
-    def __init__(self, private_key: Ed25519PrivateKey | None = None) -> None:
-        self._private_key = private_key or Ed25519PrivateKey.generate()
-        pub_bytes = self._private_key.public_key().public_bytes_raw()
-        # did:key encodes the public key as base58btc(multicodec_prefix + raw_key)
-        multikey = self._MULTICODEC_ED25519_PUB + pub_bytes
-        self._id = f"did:key:z{base58.b58encode(multikey).decode()}"
-
-    @property
-    def id(self) -> str:
-        return self._id
-
-    def sign(self, data: bytes) -> bytes:
-        return self._private_key.sign(data)
-
-
-# --- Full worked example ---
-
+# Generate a new Ed25519 key pair (or pass your own Ed25519PrivateKey)
 signer = Ed25519Signer()
-print(f"Signer DID: {signer.id}")
+print(f"Signer DID: {signer.id}")  # did:key:z6Mk...
 
 with StorageClient("https://your-was-server.example") as client:
 
@@ -62,7 +36,6 @@ with StorageClient("https://your-was-server.example") as client:
     print(f"Body: {get_resp.text()}")                     # Hello from Python!
 
     # 4. Overwrite with JSON
-    import json
     doc = json.dumps({"greeting": "hi", "from": "python"}).encode()
     resource.put(doc, "application/json")
     print(f"JSON: {resource.get().json()}")
@@ -76,12 +49,10 @@ with StorageClient("https://your-was-server.example") as client:
     print(f"GET  {resource.path} -> {gone_resp.status}")  # 404
 ```
 
-> **Tip:** Install the signer dependency with `pip install cryptography base58`.
+### Custom Signers
 
-### Signer Protocol
-
-Any object that satisfies the `Signer` protocol works — you are not locked into
-a specific cryptography library. The two requirements are:
+`Ed25519Signer` is built in, but any object that satisfies the `Signer` protocol
+works — you are not locked into a specific cryptography library:
 
 ```python
 class MySigner:
