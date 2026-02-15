@@ -11,37 +11,87 @@ pip install wallet-attached-storage-client
 ## Usage
 
 ```python
+import base58
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from wallet_attached_storage_client import StorageClient
 
-# Connect to a WAS server
+
+# --- Build a Signer from a `cryptography` Ed25519 key pair ---
+
+class Ed25519Signer:
+    """Signer backed by the `cryptography` library."""
+
+    # Multicodec prefix for Ed25519 public keys (0xed 0x01)
+    _MULTICODEC_ED25519_PUB = b"\xed\x01"
+
+    def __init__(self, private_key: Ed25519PrivateKey | None = None) -> None:
+        self._private_key = private_key or Ed25519PrivateKey.generate()
+        pub_bytes = self._private_key.public_key().public_bytes_raw()
+        # did:key encodes the public key as base58btc(multicodec_prefix + raw_key)
+        multikey = self._MULTICODEC_ED25519_PUB + pub_bytes
+        self._id = f"did:key:z{base58.b58encode(multikey).decode()}"
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    def sign(self, data: bytes) -> bytes:
+        return self._private_key.sign(data)
+
+
+# --- Full worked example ---
+
+signer = Ed25519Signer()
+print(f"Signer DID: {signer.id}")
+
 with StorageClient("https://your-was-server.example") as client:
-    # Create a space (generates a random urn:uuid if none given)
-    space = client.space(signer=your_signer)
 
-    # Write a resource
-    resource = space.resource("/my-document.txt")
-    resource.put(b"Hello, world!", "text/plain")
+    # 1. Create a space (auto-generates a urn:uuid)
+    space = client.space(signer=signer)
+    print(f"Space: {space.id}")
+    print(f"Path:  {space.path}")
 
-    # Read it back
-    response = resource.get()
-    print(response.text())  # "Hello, world!"
+    # 2. Write a resource into the space
+    resource = space.resource("/hello.txt")
+    put_resp = resource.put(b"Hello from Python!", "text/plain")
+    print(f"PUT  {resource.path} -> {put_resp.status}")  # 204
 
-    # Delete it
-    resource.delete()
+    # 3. Read it back
+    get_resp = resource.get()
+    print(f"GET  {resource.path} -> {get_resp.status}")  # 200
+    print(f"Body: {get_resp.text()}")                     # Hello from Python!
+
+    # 4. Overwrite with JSON
+    import json
+    doc = json.dumps({"greeting": "hi", "from": "python"}).encode()
+    resource.put(doc, "application/json")
+    print(f"JSON: {resource.get().json()}")
+
+    # 5. Delete the resource
+    del_resp = resource.delete()
+    print(f"DEL  {resource.path} -> {del_resp.status}")  # 204
+
+    # 6. Confirm it's gone
+    gone_resp = resource.get()
+    print(f"GET  {resource.path} -> {gone_resp.status}")  # 404
 ```
+
+> **Tip:** Install the signer dependency with `pip install cryptography base58`.
 
 ### Signer Protocol
 
-The library uses a `Signer` protocol — bring your own Ed25519 implementation (PyNaCl, cryptography, etc.):
+Any object that satisfies the `Signer` protocol works — you are not locked into
+a specific cryptography library. The two requirements are:
 
 ```python
 class MySigner:
     @property
     def id(self) -> str:
-        return "did:key:..."  # your DID key identifier
+        """Return a DID key identifier, e.g. did:key:z6Mkh..."""
+        ...
 
     def sign(self, data: bytes) -> bytes:
-        # sign data with your private key, return raw signature bytes
+        """Sign raw bytes and return the raw signature bytes."""
         ...
 ```
 
