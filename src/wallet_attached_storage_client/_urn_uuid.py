@@ -3,8 +3,6 @@ from __future__ import annotations
 import re
 import uuid
 
-from wallet_attached_storage_client._types import UrnUuid
-
 _URN_UUID_RE = re.compile(r"^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
 
@@ -23,11 +21,11 @@ def parse_urn_uuid(value: str) -> uuid.UUID:
     return uuid.UUID(value[9:])
 
 
-def make_urn_uuid(u: uuid.UUID | None = None) -> UrnUuid:
+def make_urn_uuid(u: uuid.UUID | None = None) -> str:
     """Create a ``urn:uuid:`` string.
 
     If *u* is ``None``, a new random (v4) UUID is generated.
     """
     if u is None:
         u = uuid.uuid4()
-    return UrnUuid(f"urn:uuid:{u}")
+    return f"urn:uuid:{u}"

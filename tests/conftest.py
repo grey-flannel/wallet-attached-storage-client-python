@@ -8,7 +8,6 @@ import nacl.signing
 import pytest
 
 from wallet_attached_storage_client._client import StorageClient
-from wallet_attached_storage_client._types import UrnUuid
 
 
 class Ed25519TestSigner:
@@ -26,6 +25,13 @@ class Ed25519TestSigner:
     def sign(self, data: bytes) -> bytes:
         signed = self._signing_key.sign(data)
         return signed.signature
+
+    def verify(self, data: bytes, signature: bytes) -> bool:
+        try:
+            self._verify_key.verify(data, signature)
+        except nacl.exceptions.BadSignatureError:
+            return False
+        return True
 
 
 # In-memory WAS server mock
@@ -92,5 +98,5 @@ def mock_client() -> StorageClient:
 
 
 @pytest.fixture()
-def space_id() -> UrnUuid:
-    return UrnUuid("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479")
+def space_id() -> str:
+    return "urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479"

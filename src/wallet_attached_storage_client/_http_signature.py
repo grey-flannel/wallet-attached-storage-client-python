@@ -37,20 +37,35 @@ def build_signature_string(
 
     Each pseudo-header produces one ``name: value`` line; lines are joined with ``\\n``.
     """
+    values = {
+        "(created)": str(created),
+        "(expires)": str(expires),
+        "(key-id)": key_id,
+        "(request-target)": f"{method.lower()} {path}",
+    }
     headers = include_headers or _DEFAULT_INCLUDE_HEADERS
     parts: list[str] = []
     for h in headers:
-        if h == "(created)":
-            parts.append(f"(created): {created}")
-        elif h == "(expires)":
-            parts.append(f"(expires): {expires}")
-        elif h == "(key-id)":
-            parts.append(f"(key-id): {key_id}")
-        elif h == "(request-target)":
-            parts.append(f"(request-target): {method.lower()} {path}")
-        else:
+        if h not in values:
             raise ValueError(f"Unsupported pseudo-header: {h!r}")
+        parts.append(f"{h}: {values[h]}")
     return "\n".join(parts)
+
+
+def build_auth_headers(
+    *,
+    method: str,
+    path: str,
+    signer: Signer | None = None,
+    headers: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Merge caller-supplied *headers* with an ``Authorization`` header when a *signer* is present."""
+    merged: dict[str, str] = {}
+    if headers:
+        merged.update(headers)
+    if signer:
+        merged["authorization"] = create_authorization_header(signer=signer, method=method, url=path)
+    return merged
 
 
 def create_authorization_header(

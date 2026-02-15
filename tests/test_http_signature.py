@@ -1,32 +1,10 @@
 import base64
 
-import nacl.signing
+import pytest
 
 from wallet_attached_storage_client._http_signature import build_signature_string, create_authorization_header
 
-
-class Ed25519TestSigner:
-    """Test signer using PyNaCl Ed25519."""
-
-    def __init__(self) -> None:
-        self._signing_key = nacl.signing.SigningKey.generate()
-        self._verify_key = self._signing_key.verify_key
-
-    @property
-    def id(self) -> str:
-        pub_b64 = base64.urlsafe_b64encode(self._verify_key.encode()).decode("ascii").rstrip("=")
-        return f"did:key:{pub_b64}"
-
-    def sign(self, data: bytes) -> bytes:
-        signed = self._signing_key.sign(data)
-        return signed.signature
-
-    def verify(self, data: bytes, signature: bytes) -> bool:
-        try:
-            self._verify_key.verify(data, signature)
-        except nacl.exceptions.BadSignatureError:
-            return False
-        return True
+from .conftest import Ed25519TestSigner
 
 
 class TestBuildSignatureString:
@@ -70,7 +48,7 @@ class TestBuildSignatureString:
         assert lines[1] == "(request-target): delete /x"
 
     def test_unsupported_header_raises(self) -> None:
-        try:
+        with pytest.raises(ValueError):
             build_signature_string(
                 method="GET",
                 path="/",
@@ -79,9 +57,6 @@ class TestBuildSignatureString:
                 key_id="k",
                 include_headers=["host"],
             )
-            assert False, "Expected ValueError"
-        except ValueError:
-            pass
 
 
 class TestCreateAuthorizationHeader:

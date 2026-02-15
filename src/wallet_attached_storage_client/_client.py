@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import httpx
 
 from wallet_attached_storage_client._space import Space
-from wallet_attached_storage_client._types import UrnUuid
 from wallet_attached_storage_client._urn_uuid import make_urn_uuid
 
 if TYPE_CHECKING:
@@ -30,7 +29,7 @@ class StorageClient:
 
     def space(
         self,
-        id: UrnUuid | str | None = None,  # noqa: A002
+        id: str | None = None,  # noqa: A002
         *,
         signer: Signer | None = None,
     ) -> Space:
@@ -42,7 +41,7 @@ class StorageClient:
             id = make_urn_uuid()  # noqa: A001
         return Space(
             client=self._client,
-            id=UrnUuid(id),
+            id=id,
             signer=signer,
         )
 

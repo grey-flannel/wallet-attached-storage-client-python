@@ -55,23 +55,23 @@ def _provision_space(client: StorageClient, signer: Ed25519Signer) -> tuple:
 class TestSpaceLifecycle:
     def test_provision_space(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, resp = _provision_space(client, signer)
-        assert resp.status == 204
+        assert resp.status_code == 204
 
     def test_get_space(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resp = space.get()
-        assert resp.ok
+        assert resp.is_success
         data = resp.json()
         assert data["controller"] == signer.controller
 
     def test_delete_space(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resp = space.delete()
-        assert resp.ok
+        assert resp.is_success
 
         # Confirm it's gone
         resp = space.get()
-        assert resp.status == 404
+        assert resp.status_code == 404
 
 
 # ---------------------------------------------------------------------------
@@ -86,11 +86,11 @@ class TestResourceCrud:
         resource = space.resource("/greeting.txt")
 
         put_resp = resource.put(b"Hello, WAS!", "text/plain")
-        assert put_resp.ok
+        assert put_resp.is_success
 
         get_resp = resource.get()
-        assert get_resp.ok
-        assert get_resp.text() == "Hello, WAS!"
+        assert get_resp.is_success
+        assert get_resp.text == "Hello, WAS!"
 
     def test_put_and_get_json(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
@@ -100,7 +100,7 @@ class TestResourceCrud:
         resource.put(json.dumps(doc).encode(), "application/json")
 
         get_resp = resource.get()
-        assert get_resp.ok
+        assert get_resp.is_success
         assert get_resp.json() == doc
 
     def test_put_and_get_binary(self, client: StorageClient, signer: Ed25519Signer) -> None:
@@ -111,46 +111,46 @@ class TestResourceCrud:
         resource.put(payload, "application/octet-stream")
 
         get_resp = resource.get()
-        assert get_resp.ok
-        assert get_resp.content() == payload
+        assert get_resp.is_success
+        assert get_resp.content == payload
 
     def test_put_same_path_twice(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resource = space.resource("/twice.txt")
 
         resp1 = resource.put(b"first", "text/plain")
-        assert resp1.ok
+        assert resp1.is_success
 
         # Second PUT to the same path should still succeed
         resp2 = resource.put(b"second", "text/plain")
-        assert resp2.ok
+        assert resp2.is_success
 
     def test_delete_resource(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resource = space.resource("/to-delete.txt")
 
         resource.put(b"ephemeral", "text/plain")
-        assert resource.get().ok
+        assert resource.get().is_success
 
         del_resp = resource.delete()
-        assert del_resp.ok
+        assert del_resp.is_success
 
         gone_resp = resource.get()
-        assert gone_resp.status == 404
-        assert not gone_resp.ok
+        assert gone_resp.status_code == 404
+        assert not gone_resp.is_success
 
     def test_get_nonexistent_resource(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resource = space.resource("/does-not-exist")
         resp = resource.get()
-        assert resp.status == 404
+        assert resp.status_code == 404
 
     def test_auto_generated_resource_path(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resource = space.resource()  # random UUID path
 
         resource.put(b"random path content", "text/plain")
-        assert resource.get().text() == "random path content"
+        assert resource.get().text == "random path content"
 
 
 # ---------------------------------------------------------------------------
@@ -169,8 +169,8 @@ class TestMultipleResources:
         r1.put(b"aaa", "text/plain")
         r2.put(b"bbb", "text/plain")
 
-        assert r1.get().text() == "aaa"
-        assert r2.get().text() == "bbb"
+        assert r1.get().text == "aaa"
+        assert r2.get().text == "bbb"
 
     def test_delete_one_preserves_other(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
@@ -182,8 +182,8 @@ class TestMultipleResources:
         r2.put(b"delete me", "text/plain")
 
         r2.delete()
-        assert r2.get().status == 404
-        assert r1.get().text() == "keep me"
+        assert r2.get().status_code == 404
+        assert r1.get().text == "keep me"
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +205,7 @@ class TestAuth:
         resp = unsigned_resource.get()
         # Server may allow or deny unsigned reads — either is valid
         # We just verify we get a well-formed response
-        assert resp.status in (200, 401, 403)
+        assert resp.status_code in (200, 401, 403)
 
     def test_different_signer_cannot_write(self, client: StorageClient, signer: Ed25519Signer) -> None:
         """A different signer should not be able to write to someone else's space."""
@@ -215,7 +215,7 @@ class TestAuth:
         other_space = client.space(space.id, signer=other_signer)
         resource = other_space.resource("/intruder.txt")
         resp = resource.put(b"unauthorized", "text/plain")
-        assert resp.status in (401, 403)
+        assert resp.status_code in (401, 403)
 
     def test_per_method_signer_override(self, client: StorageClient, signer: Ed25519Signer) -> None:
         """Passing signer= per method should work."""
@@ -226,24 +226,24 @@ class TestAuth:
 
         # PUT with explicit signer
         resp = resource.put(b"signed per-call", "text/plain", signer=signer)
-        assert resp.ok
+        assert resp.is_success
 
 
 # ---------------------------------------------------------------------------
-# StorageResponse interface
+# httpx.Response interface (smoke tests)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.usefixtures("_server_available")
-class TestStorageResponse:
-    def test_status_and_ok(self, client: StorageClient, signer: Ed25519Signer) -> None:
+class TestResponseInterface:
+    def test_status_code_and_is_success(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
         resource = space.resource("/resp-test.txt")
         resource.put(b"test", "text/plain")
 
         resp = resource.get()
-        assert isinstance(resp.status, int)
-        assert resp.ok is True
+        assert isinstance(resp.status_code, int)
+        assert resp.is_success is True
 
     def test_headers(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
@@ -259,8 +259,8 @@ class TestStorageResponse:
         resource.put(b"raw bytes", "text/plain")
 
         resp = resource.get()
-        assert isinstance(resp.content(), bytes)
-        assert resp.content() == b"raw bytes"
+        assert isinstance(resp.content, bytes)
+        assert resp.content == b"raw bytes"
 
     def test_text(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
@@ -268,8 +268,8 @@ class TestStorageResponse:
         resource.put(b"text content", "text/plain")
 
         resp = resource.get()
-        assert isinstance(resp.text(), str)
-        assert resp.text() == "text content"
+        assert isinstance(resp.text, str)
+        assert resp.text == "text content"
 
     def test_json(self, client: StorageClient, signer: Ed25519Signer) -> None:
         space, _ = _provision_space(client, signer)
@@ -279,9 +279,3 @@ class TestStorageResponse:
 
         resp = resource.get()
         assert resp.json() == doc
-
-    def test_repr(self, client: StorageClient, signer: Ed25519Signer) -> None:
-        space, _ = _provision_space(client, signer)
-        resp = space.get()
-        assert "StorageResponse" in repr(resp)
-        assert str(resp.status) in repr(resp)

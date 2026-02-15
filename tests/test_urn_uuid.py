@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from wallet_attached_storage_client._urn_uuid import is_urn_uuid, make_urn_uuid, parse_urn_uuid
 
 
@@ -34,11 +36,8 @@ class TestParseUrnUuid:
         assert str(result) == "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 
     def test_invalid_raises(self) -> None:
-        try:
+        with pytest.raises(ValueError):
             parse_urn_uuid("not-a-urn")
-            assert False, "Expected ValueError"
-        except ValueError:
-            pass
 
 
 class TestMakeUrnUuid:
