@@ -92,5 +92,6 @@ git push
 
 ## References
 
+- [HTTP Signature Format](docs/http-signature-format.md) — wire format reference for the Cavage draft-12 signatures used by this client
 - [Wallet Attached Storage Client JavaScript](https://github.com/did-coop/wallet-attached-storage)
 - [Wallet Attached Storage Specification (ReSpec Format)](https://github.com/did-coop/wallet-attached-storage-spec)

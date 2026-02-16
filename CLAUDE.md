@@ -35,6 +35,10 @@ uv publish -t $(keyring get https://upload.pypi.org/legacy/ __token__)
 - **Pytest**: `--import-mode=importlib`
 - **Dev deps**: bandit, flake8, keyring, pytest, pytest-cov, ruff, safety
 
+## HTTP Signature Format
+
+See `docs/http-signature-format.md` for the Cavage draft-12 wire format (with Digital Bazaar `(key-id)` extension) used by this client. Covers the `Authorization` header structure, signature string construction, DID key format, and differences from stock draft-12.
+
 ## Issue Tracking
 
 Uses **bd (beads)** — not TodoWrite/TaskCreate/markdown files. See `AGENTS.md` for quick reference.
