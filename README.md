@@ -71,21 +71,23 @@ class MySigner:
 - **`StorageClient(base_url)`** — entry point; creates `Space` handles
 - **`Space`** — represents a WAS space (`get()`, `put()`, `delete()`, `resource()`)
 - **`Resource`** — represents a resource within a space (`get()`, `put()`, `post()`, `delete()`)
-- **`StorageResponse`** — wraps HTTP responses (`status`, `ok`, `headers`, `content()`, `json()`, `text()`)
 
-## Scripts
+## Development
 
 ```bash
-uv run safety scan
 uv run ruff check
 uv run flake8 src tests
 uv run bandit -r src
 uv run bandit -r tests -s B101
-uv run -m pytest -vv --cov=src --cov-report=term --cov-report=xml
-uv version --bump patch
-git add . && git commit -m "Bump patch version" && git tag -sm "New feature" $version
-rm -rf dist && uv build
-uv publish -t $(keyring get https://upload.pypi.org/legacy/ __token__)
+uv run safety scan
+uv run -m pytest -vv --cov=src --cov-report=term
+```
+
+CI runs all of the above on every push and PR (Python 3.11–3.14). To publish a release, tag and push:
+
+```bash
+git tag -sm "New features." "v1.2.3"
+git push
 ```
 
 ## References
